@@ -70,7 +70,7 @@ app.use((err, req, res, next) => {
 
 socketHandler(io);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`KAYFQIL server running on port ${PORT}`);
 });
