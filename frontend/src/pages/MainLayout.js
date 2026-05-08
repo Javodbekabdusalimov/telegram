@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  MessageCircle, Tv2, Settings, Contact,
-} from 'lucide-react';
+import { MessageCircle, Tv2, Settings, Contact } from 'lucide-react';
 import { setActivePanel } from '../store/slices/uiSlice';
 import { fetchChats } from '../store/slices/chatSlice';
 import useSocket from '../hooks/useSocket';
@@ -18,10 +16,10 @@ import Avatar from '../components/ui/Avatar';
 import { Toaster } from 'react-hot-toast';
 
 const NAV_ITEMS = [
-  { id: 'chats', icon: MessageCircle, label: 'Chatlar' },
-  { id: 'contacts', icon: Contact, label: 'Kontaktlar' },
-  { id: 'channels', icon: Tv2, label: 'Kanallar' },
-  { id: 'settings', icon: Settings, label: 'Sozlamalar' },
+  { id: 'chats',    icon: MessageCircle, label: 'Chatlar' },
+  { id: 'contacts', icon: Contact,       label: 'Kontaktlar' },
+  { id: 'channels', icon: Tv2,           label: 'Kanallar' },
+  { id: 'settings', icon: Settings,      label: 'Sozlamalar' },
 ];
 
 const MainLayout = () => {
@@ -31,10 +29,7 @@ const MainLayout = () => {
   const { user } = useSelector((s) => s.auth);
 
   useSocket();
-
-  useEffect(() => {
-    dispatch(fetchChats());
-  }, [dispatch]);
+  useEffect(() => { dispatch(fetchChats()); }, [dispatch]);
 
   const renderSidebarContent = () => {
     switch (activePanel) {
@@ -44,9 +39,7 @@ const MainLayout = () => {
       default: return (
         <div className="flex flex-col h-full">
           <Stories />
-          <div className="flex-1 overflow-hidden">
-            <ChatList />
-          </div>
+          <div className="flex-1 overflow-hidden"><ChatList /></div>
         </div>
       );
     }
@@ -55,77 +48,80 @@ const MainLayout = () => {
   const showChatOnMobile = !!activeChat && activePanel === 'chats';
 
   return (
-    <div className="flex h-screen bg-dark-950 overflow-hidden">
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: { background: '#1f3a50', color: '#e8eaed', border: '1px solid #2f4a5f' },
-          duration: 3000,
-        }}
-      />
+    <div className="flex h-screen overflow-hidden" style={{ background: '#f0f2f5' }}>
+      <Toaster position="top-center" toastOptions={{
+        style: { background: '#fff', color: '#111827', border: '1px solid #ede9fe', boxShadow: '0 4px 16px rgba(124,58,237,0.12)' },
+        duration: 3000,
+      }} />
 
       <CallModal />
       <NewChatModal />
 
-      <div className="flex flex-col flex-shrink-0 bg-dark-950 border-r border-dark-700" style={{ width: '64px' }}>
-        <div className="p-2 mb-2">
-          <div className="w-10 h-10 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-primary-600/30">
-            <MessageCircle size={20} className="text-white" />
+      {/* ── Left nav strip ── */}
+      <div className="flex flex-col flex-shrink-0 bg-white border-r border-gray-100 shadow-sm" style={{ width: 64 }}>
+        {/* Logo */}
+        <div className="p-2 mb-1 mt-2">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center mx-auto shadow-md"
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.69 7.97c-.12.57-.46.71-.93.44l-2.58-1.9-1.24 1.2c-.14.14-.26.26-.52.26l.18-2.6 4.74-4.28c.21-.18-.04-.28-.32-.1L7.46 14.5l-2.54-.8c-.55-.17-.56-.55.12-.82l9.91-3.82c.46-.17.86.11.69.74z" fill="white"/>
+            </svg>
           </div>
         </div>
 
+        {/* Nav icons */}
         <div className="flex-1 flex flex-col items-center gap-1 px-2">
           {NAV_ITEMS.map(({ id, icon: Icon, label }) => (
-            <button
-              key={id}
-              onClick={() => dispatch(setActivePanel(id))}
-              title={label}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 ${
-                activePanel === id
-                  ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-dark-700'
-              }`}
-            >
+            <button key={id} onClick={() => dispatch(setActivePanel(id))} title={label}
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150"
+              style={activePanel === id
+                ? { background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', boxShadow: '0 2px 8px rgba(124,58,237,0.35)' }
+                : { color: '#9ca3af', background: 'transparent' }}>
               <Icon size={20} />
             </button>
           ))}
         </div>
 
+        {/* Avatar */}
         <div className="p-2 mb-2">
-          <button
-            onClick={() => dispatch(setActivePanel('settings'))}
-            className="block mx-auto"
-          >
-            <Avatar user={user} size="sm" showOnline className="hover:ring-2 hover:ring-primary-500 transition-all" />
+          <button onClick={() => dispatch(setActivePanel('settings'))} className="block mx-auto">
+            <Avatar user={user} size="sm" showOnline className="hover:ring-2 hover:ring-purple-400 transition-all" />
           </button>
         </div>
       </div>
 
-      <div className={`flex-shrink-0 border-r border-dark-700 bg-dark-900 flex flex-col overflow-hidden ${showChatOnMobile ? 'hidden md:flex' : 'flex'}`}
-        style={{ width: '320px' }}>
+      {/* ── Chat list sidebar ── */}
+      <div className={`flex-shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden ${showChatOnMobile ? 'hidden md:flex' : 'flex'}`}
+        style={{ width: 320 }}>
         {renderSidebarContent()}
       </div>
 
-      <div className={`flex-1 flex flex-col overflow-hidden ${!showChatOnMobile && !activeChat ? 'hidden md:flex' : 'flex'}`}>
+      {/* ── Main area ── */}
+      <div className={`flex-1 flex flex-col overflow-hidden ${!showChatOnMobile && !activeChat ? 'hidden md:flex' : 'flex'}`}
+        style={{ background: '#f0f2f5' }}>
         {activeChat && activePanel === 'chats' ? (
           <ChatWindow chat={activeChat} />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="w-24 h-24 bg-primary-600/20 rounded-3xl flex items-center justify-center mb-6">
-              <MessageCircle size={44} className="text-primary-400" />
+            <div className="w-28 h-28 rounded-3xl flex items-center justify-center mb-6 shadow-xl"
+              style={{ background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)' }}>
+              <svg width="52" height="52" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.69 7.97c-.12.57-.46.71-.93.44l-2.58-1.9-1.24 1.2c-.14.14-.26.26-.52.26l.18-2.6 4.74-4.28c.21-.18-.04-.28-.32-.1L7.46 14.5l-2.54-.8c-.55-.17-.56-.55.12-.82l9.91-3.82c.46-.17.86.11.69.74z"
+                  fill="#7c3aed"/>
+              </svg>
             </div>
-            <h2 className="text-2xl font-bold text-gray-200 mb-2">KAYFQIL</h2>
-            <p className="text-gray-500 max-w-xs leading-relaxed">
+            <h2 className="text-2xl font-bold mb-2" style={{ color: '#7c3aed' }}>JAVOGRAM</h2>
+            <p className="text-gray-400 max-w-xs leading-relaxed text-sm">
               Xabar yuborish uchun chapdan chat tanlang yoki yangi chat boshlang
             </p>
-            <div className="mt-6 flex gap-3">
-              <div className="flex items-center gap-2 bg-dark-800 rounded-xl px-4 py-2">
+            <div className="mt-6 flex gap-3 flex-wrap justify-center">
+              <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2 shadow-sm border border-gray-100">
                 <div className="w-2 h-2 bg-green-400 rounded-full" />
-                <span className="text-xs text-gray-400">End-to-end shifrlangan</span>
+                <span className="text-xs text-gray-500">End-to-end shifrlangan</span>
               </div>
-              <div className="flex items-center gap-2 bg-dark-800 rounded-xl px-4 py-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                <span className="text-xs text-gray-400">Real-time xabar</span>
+              <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2 shadow-sm border border-gray-100">
+                <div className="w-2 h-2 rounded-full" style={{ background: '#7c3aed' }} />
+                <span className="text-xs text-gray-500">Real-time xabar</span>
               </div>
             </div>
           </div>

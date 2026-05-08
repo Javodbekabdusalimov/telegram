@@ -20,7 +20,6 @@ const ChatWindow = ({ chat }) => {
   const chatMessages = messages[chat._id] || [];
   const endRef = useRef();
   const containerRef = useRef();
-  const prevScrollHeight = useRef(0);
 
   const chatName = getChatName(chat, user?._id);
   const chatUser = getChatUser(chat, user?._id);
@@ -36,19 +35,14 @@ const ChatWindow = ({ chat }) => {
     }
   }, [chat._id, dispatch, socket]);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages.length]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages.length]);
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
     if (el.scrollTop < 100 && hasMore[chat._id] && !loading) {
       const oldest = chatMessages[0];
-      if (oldest) {
-        prevScrollHeight.current = el.scrollHeight;
-        dispatch(fetchMessages({ chatId: chat._id, before: oldest.createdAt }));
-      }
+      if (oldest) dispatch(fetchMessages({ chatId: chat._id, before: oldest.createdAt }));
     }
   }, [chat._id, chatMessages, hasMore, loading, dispatch]);
 
@@ -58,7 +52,7 @@ const ChatWindow = ({ chat }) => {
 
   const renderDateSeparator = (date, key) => (
     <div key={key} className="flex items-center justify-center my-4">
-      <span className="text-gray-500 text-xs bg-dark-800 px-3 py-1 rounded-full">
+      <span className="text-gray-400 text-xs bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100">
         {new Date(date).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })}
       </span>
     </div>
@@ -68,7 +62,6 @@ const ChatWindow = ({ chat }) => {
     const items = [];
     let lastDate = null;
     let prevSender = null;
-
     chatMessages.forEach((msg, i) => {
       const msgDate = new Date(msg.createdAt).toDateString();
       if (msgDate !== lastDate) {
@@ -76,50 +69,35 @@ const ChatWindow = ({ chat }) => {
         lastDate = msgDate;
         prevSender = null;
       }
-
       const isMe = msg.sender?._id === user?._id || msg.sender === user?._id;
       const showAvatar = !isMe && isGroup && prevSender !== msg.sender?._id;
       prevSender = msg.sender?._id;
-
-      items.push(
-        <MessageBubble
-          key={msg._id}
-          message={msg}
-          isMe={isMe}
-          showAvatar={showAvatar}
-          chatId={chat._id}
-        />
-      );
+      items.push(<MessageBubble key={msg._id} message={msg} isMe={isMe} showAvatar={showAvatar} chatId={chat._id} />);
     });
-
     return items;
   };
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-dark-700 bg-dark-900 flex-shrink-0">
-        <button
-          className="md:hidden btn-ghost p-2 rounded-xl"
-          onClick={() => dispatch(setActiveChat(null))}
-        >
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0 shadow-sm">
+        <button className="md:hidden btn-ghost p-2" onClick={() => dispatch(setActiveChat(null))}>
           <ArrowLeft size={20} />
         </button>
 
-        <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => dispatch(openModal({ modal: 'profile', data: chatUser || chat }))}>
-          {chatUser ? (
-            <Avatar user={chatUser} size="md" showOnline />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-primary-700 flex items-center justify-center flex-shrink-0">
+        <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+          onClick={() => dispatch(openModal({ modal: 'profile', data: chatUser || chat }))}>
+          {chatUser ? <Avatar user={chatUser} size="md" showOnline /> : (
+            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)' }}>
               <Users size={20} className="text-white" />
             </div>
           )}
           <div className="min-w-0">
-            <h3 className="font-semibold text-gray-100 truncate">{chatName}</h3>
-            <p className="text-xs text-gray-500 truncate">
-              {typingNames.length > 0
-                ? `${typingNames[0]} yozmoqda...`
-                : isGroup
-                ? `${chat.participants?.length || 0} a'zo`
+            <h3 className="font-semibold text-gray-800 truncate">{chatName}</h3>
+            <p className="text-xs text-gray-400 truncate">
+              {typingNames.length > 0 ? `${typingNames[0]} yozmoqda...`
+                : isGroup ? `${chat.participants?.length || 0} a'zo`
                 : formatLastSeen(chatUser?.lastSeen, chatUser?.isOnline)}
             </p>
           </div>
@@ -128,34 +106,23 @@ const ChatWindow = ({ chat }) => {
         <div className="flex items-center gap-1 flex-shrink-0">
           {!isGroup && (
             <>
-              <button onClick={() => startCall('voice')} className="btn-ghost p-2 rounded-xl">
-                <Phone size={18} />
-              </button>
-              <button onClick={() => startCall('video')} className="btn-ghost p-2 rounded-xl">
-                <Video size={18} />
-              </button>
+              <button onClick={() => startCall('voice')} className="btn-ghost p-2 rounded-xl"><Phone size={18} /></button>
+              <button onClick={() => startCall('video')} className="btn-ghost p-2 rounded-xl"><Video size={18} /></button>
             </>
           )}
-          <button className="btn-ghost p-2 rounded-xl">
-            <Search size={18} />
-          </button>
-          <button className="btn-ghost p-2 rounded-xl">
-            <MoreVertical size={18} />
-          </button>
+          <button className="btn-ghost p-2 rounded-xl"><Search size={18} /></button>
+          <button className="btn-ghost p-2 rounded-xl"><MoreVertical size={18} /></button>
         </div>
       </div>
 
-      <div
-        ref={containerRef}
-        onScroll={handleScroll}
+      {/* Messages */}
+      <div ref={containerRef} onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-0.5"
-        style={{
-          backgroundImage: 'radial-gradient(ellipse at top left, #1a2a40 0%, #0e1c2f 60%)',
-        }}
-      >
+        style={{ background: '#f0f2f5' }}>
         {loading && chatMessages.length === 0 && (
           <div className="flex justify-center py-8">
-            <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+              style={{ borderColor: '#a78bfa', borderTopColor: 'transparent' }} />
           </div>
         )}
         {renderMessages()}
