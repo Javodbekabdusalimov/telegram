@@ -20,9 +20,15 @@ const app = express();
 const server = http.createServer(app);
 
   
+const ALLOWED_ORIGINS = [
+  'https://telegram-production-a2c5.up.railway.app',
+  'http://localhost:3000',
+  'http://localhost:5001',
+];
+
 const io = new Server(server, {
   cors: {
-    origin: "*", // Railway-da bitta URL bo'lgani uchun * xavfsiz yoki o'sha URL-ni yozing
+    origin: ALLOWED_ORIGINS,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -38,7 +44,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: "*",
+  origin: ALLOWED_ORIGINS,
   credentials: true,
 }));
 
