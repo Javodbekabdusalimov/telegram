@@ -36,7 +36,7 @@ exports.searchUsers = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Search query too short' });
     }
 
-    const raw = q.trim();
+    const raw = q.trim().replace(/^@/, '');
     const escaped = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const users = await User.find({
       _id: { $ne: req.user._id },
