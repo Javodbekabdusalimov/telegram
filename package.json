@@ -1,9 +1,4 @@
 {
   "name": "kayfqil",
-  "version": "1.0.0",
-  "scripts": {
-    "build": "cd frontend && npm install && npm run build",
-    "start": "cd backend && npm install && node server.js",
-    "install": "cd backend && npm install && cd ../frontend && npm install"
-  }
+  "version": "1.0.0"
 }
