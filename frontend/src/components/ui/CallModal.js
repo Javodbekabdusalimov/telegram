@@ -21,17 +21,31 @@ const CallModal = () => {
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
 
   const localRef = useRef();
   const remoteRef = useRef();
   const peerRef = useRef();
-  const streamRef = useRef();
   const timerRef = useRef();
   const targetUserIdRef = useRef();
   const callStateRef = useRef(callState);
 
   useEffect(() => { callStateRef.current = callState; }, [callState]);
+
+  // Sync local stream → video element whenever stream or callState changes
+  useEffect(() => {
+    if (localRef.current && localStream) {
+      localRef.current.srcObject = localStream;
+    }
+  }, [localStream, callState]);
+
+  // Sync remote stream → video element
+  useEffect(() => {
+    if (remoteRef.current && remoteStream) {
+      remoteRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream, callState]);
 
   const startTimer = () => {
     clearInterval(timerRef.current);
@@ -43,8 +57,7 @@ const CallModal = () => {
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const cleanupMedia = () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
+    localStream?.getTracks().forEach((t) => t.stop());
     peerRef.current?.close();
     peerRef.current = null;
     clearInterval(timerRef.current);
@@ -53,13 +66,13 @@ const CallModal = () => {
   const endCall = useCallback(() => {
     const targetId = targetUserIdRef.current;
     cleanupMedia();
+    setLocalStream(null);
     setRemoteStream(null);
     setDuration(0);
-    if (targetId) {
-      socket?.emit('call:end', { targetUserId: targetId });
-    }
+    if (targetId) socket?.emit('call:end', { targetUserId: targetId });
     dispatch(setCallState(null));
     dispatch(setIncomingCall(null));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, dispatch]);
 
   const createPC = useCallback((targetUserId) => {
@@ -73,9 +86,7 @@ const CallModal = () => {
     };
 
     pc.ontrack = (e) => {
-      const stream = e.streams[0];
-      setRemoteStream(stream);
-      if (remoteRef.current) remoteRef.current.srcObject = stream;
+      setRemoteStream(e.streams[0]);
     };
 
     pc.onconnectionstatechange = () => {
@@ -98,10 +109,7 @@ const CallModal = () => {
           audio: true,
           video: callState.type === 'video',
         });
-        streamRef.current = stream;
-        if (localRef.current) {
-          localRef.current.srcObject = stream;
-        }
+        setLocalStream(stream);
 
         const pc = createPC(callState.targetUser._id);
         stream.getTracks().forEach((t) => pc.addTrack(t, stream));
@@ -123,9 +131,9 @@ const CallModal = () => {
 
     start();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callState?.chatId, callState?.status]);
+  }, [callState?.chatId]);
 
-  // Socket events for call signaling
+  // Socket: receive answer + ICE candidates + end
   useEffect(() => {
     if (!socket) return;
 
@@ -162,23 +170,18 @@ const CallModal = () => {
     };
   }, [socket, dispatch, endCall]);
 
-  // Sync remoteStream to video element
-  useEffect(() => {
-    if (remoteRef.current && remoteStream) {
-      remoteRef.current.srcObject = remoteStream;
-    }
-  }, [remoteStream]);
-
   useEffect(() => () => cleanupMedia(), []);
 
+  // Incoming call: answer button
   const answerCall = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: incomingCall.callType === 'video',
       });
-      streamRef.current = stream;
-      if (localRef.current) localRef.current.srcObject = stream;
+
+      // Set stream state first — video elements will sync via useEffect after re-render
+      setLocalStream(stream);
 
       const pc = createPC(incomingCall.from._id);
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
@@ -199,16 +202,16 @@ const CallModal = () => {
   };
 
   const toggleMute = () => {
-    streamRef.current?.getAudioTracks().forEach((t) => { t.enabled = muted; });
+    localStream?.getAudioTracks().forEach((t) => { t.enabled = muted; });
     setMuted((m) => !m);
   };
 
   const toggleCamera = () => {
-    streamRef.current?.getVideoTracks().forEach((t) => { t.enabled = cameraOff; });
+    localStream?.getVideoTracks().forEach((t) => { t.enabled = cameraOff; });
     setCameraOff((c) => !c);
   };
 
-  // Incoming call screen
+  // ── Incoming call screen ──
   if (incomingCall && !callState) {
     return (
       <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
@@ -220,16 +223,10 @@ const CallModal = () => {
           <h3 className="text-xl font-bold text-white mb-2">{incomingCall.from?.firstName}</h3>
           <p className="text-gray-400 text-sm mb-8">Kiruvchi qo'ng'iroq...</p>
           <div className="flex items-center justify-center gap-6">
-            <button
-              onClick={endCall}
-              className="w-14 h-14 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-            >
+            <button onClick={endCall} className="w-14 h-14 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
               <PhoneOff size={22} className="text-white" />
             </button>
-            <button
-              onClick={answerCall}
-              className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition-colors animate-pulse"
-            >
+            <button onClick={answerCall} className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition-colors animate-pulse">
               <Phone size={22} className="text-white" />
             </button>
           </div>
@@ -244,32 +241,36 @@ const CallModal = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-dark-950 flex flex-col">
+      {/* ── Video screens ── */}
       {isVideo && (
         <>
+          {/* Remote video (big) */}
           <video
             ref={remoteRef}
             autoPlay
             playsInline
             className="absolute inset-0 w-full h-full object-cover bg-dark-900"
           />
+          {/* Local video (small corner) */}
           <video
             ref={localRef}
             autoPlay
             playsInline
             muted
-            className="absolute top-4 right-4 w-28 h-36 rounded-xl object-cover border-2 border-dark-600 z-10 bg-dark-800"
+            className="absolute top-4 right-4 w-32 h-44 rounded-2xl object-cover border-2 border-white/20 z-10 bg-dark-800 shadow-xl"
           />
         </>
       )}
 
-      <div className={`flex flex-col items-center justify-center flex-1 z-10 ${isVideo ? '' : 'bg-dark-950'}`}>
-        {(!isVideo || callState.status !== 'connected') && (
+      {/* ── Center info ── */}
+      <div className="flex flex-col items-center justify-center flex-1 z-10">
+        {(!isVideo || !remoteStream) && (
           <>
             <Avatar user={callState.targetUser} size="xl" className="mb-4" />
             <h3 className="text-2xl font-bold text-white mb-2">{callState.targetUser?.firstName}</h3>
           </>
         )}
-        <p className={`text-sm ${isVideo ? 'text-white bg-black/40 px-3 py-1 rounded-full' : 'text-gray-400'}`}>
+        <p className={`text-sm ${isVideo && remoteStream ? 'text-white bg-black/50 px-3 py-1 rounded-full' : 'text-gray-400'}`}>
           {callState.status === 'calling'
             ? 'Qo\'ng\'iroq qilinmoqda...'
             : callState.status === 'connected'
@@ -278,10 +279,11 @@ const CallModal = () => {
         </p>
       </div>
 
-      <div className="flex items-center justify-center gap-5 pb-12 z-10">
+      {/* ── Controls ── */}
+      <div className="flex items-center justify-center gap-5 pb-14 z-10">
         <button
           onClick={toggleMute}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${muted ? 'bg-red-500' : 'bg-dark-700 hover:bg-dark-600'}`}
+          className={`w-13 h-13 w-12 h-12 rounded-full flex items-center justify-center transition-colors ${muted ? 'bg-red-500' : 'bg-white/20 hover:bg-white/30'}`}
         >
           {muted ? <MicOff size={20} className="text-white" /> : <Mic size={20} className="text-white" />}
         </button>
@@ -289,7 +291,7 @@ const CallModal = () => {
         {isVideo && (
           <button
             onClick={toggleCamera}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${cameraOff ? 'bg-red-500' : 'bg-dark-700 hover:bg-dark-600'}`}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${cameraOff ? 'bg-red-500' : 'bg-white/20 hover:bg-white/30'}`}
           >
             {cameraOff ? <VideoOff size={20} className="text-white" /> : <Video size={20} className="text-white" />}
           </button>
@@ -297,7 +299,7 @@ const CallModal = () => {
 
         <button
           onClick={endCall}
-          className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+          className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
         >
           <PhoneOff size={26} className="text-white" />
         </button>

@@ -178,7 +178,7 @@ const MessageBubble = ({ message, isMe, showAvatar, chatId }) => {
       )}
       {!isMe && !showAvatar && <div className="w-9 mr-2" />}
 
-      <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[70%]`}>
+      <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[70%] min-w-[80px]`}>
         {!isMe && showAvatar && (
           <span className="text-xs text-primary-400 font-medium mb-1 ml-1">
             {message.sender?.firstName}
@@ -196,7 +196,7 @@ const MessageBubble = ({ message, isMe, showAvatar, chatId }) => {
           <div className={isMe ? 'chat-bubble-me' : 'chat-bubble-other'}>
             {renderMedia()}
             {message.content && (
-              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words min-w-[60px]">{message.content}</p>
             )}
             <div className={`flex items-center gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-end'}`}>
               {message.isEdited && <span className="text-xs opacity-60">tahrirlangan</span>}
