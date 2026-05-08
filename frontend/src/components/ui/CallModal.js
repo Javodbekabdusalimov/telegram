@@ -30,6 +30,7 @@ const CallModal = () => {
   const timerRef = useRef();
   const targetUserIdRef = useRef();
   const callStateRef = useRef(callState);
+  const pendingCandidatesRef = useRef([]);
 
   useEffect(() => { callStateRef.current = callState; }, [callState]);
 
@@ -141,6 +142,10 @@ const CallModal = () => {
       try {
         if (peerRef.current && answer) {
           await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+          for (const c of pendingCandidatesRef.current) {
+            try { await peerRef.current.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+          }
+          pendingCandidatesRef.current = [];
         }
         dispatch(setCallState({ ...callStateRef.current, status: 'connected' }));
         startTimer();
@@ -151,8 +156,11 @@ const CallModal = () => {
 
     const onIceCandidate = async ({ candidate }) => {
       try {
-        if (peerRef.current && candidate) {
+        if (!candidate) return;
+        if (peerRef.current && peerRef.current.remoteDescription) {
           await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } else {
+          pendingCandidatesRef.current.push(candidate);
         }
       } catch (_) {}
     };
@@ -188,12 +196,16 @@ const CallModal = () => {
 
       if (incomingCall.offer) {
         await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+        for (const c of pendingCandidatesRef.current) {
+          try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+        }
+        pendingCandidatesRef.current = [];
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socket?.emit('call:answer', { targetUserId: incomingCall.from._id, answer });
       }
 
-      dispatch(setCallState({ ...incomingCall, status: 'connected', targetUser: incomingCall.from }));
+      dispatch(setCallState({ ...incomingCall, type: incomingCall.callType, status: 'connected', targetUser: incomingCall.from }));
       dispatch(setIncomingCall(null));
       startTimer();
     } catch (err) {

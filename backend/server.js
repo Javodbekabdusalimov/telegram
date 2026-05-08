@@ -95,7 +95,8 @@ app.use((err, req, res, next) => {
 
 socketHandler(io);
 
-// 5. Portni Railway uchun '0.0.0.0' IP bilan ochish
+
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 KAYFQIL server running on port ${PORT}`);
