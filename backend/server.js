@@ -52,7 +52,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // --- FRONTEND INTEGRATSIYASI ---
 // Frontend build fayllarini serverga ulash
 // Agar frontend papkangiz 'frontend' bo'lsa va Vite represents 'dist' ishlatsangiz:
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, '../frontend/build')));
 // -------------------------------
 
 const globalLimiter = rateLimit({
@@ -76,7 +76,7 @@ app.get('/api/health', (req, res) => {
 // 4. FRONTEND ROUTING (Muhim!)
 // API-dan boshqa barcha so'rovlarni Frontend'ga yo'naltirish
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+  res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
 });
 
 app.use((err, req, res, next) => {
