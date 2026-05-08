@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { initSocket, disconnectSocket, getSocket } from '../socket';
-import { receiveMessage, updateMessageReactions, markMessagesRead } from '../store/slices/messageSlice';
-import { setTyping, setOnlineStatus, updateLastMessage, incrementUnread } from '../store/slices/chatSlice';
+import { receiveMessage, updateMessageReactions, markMessagesRead, fetchMessages } from '../store/slices/messageSlice';
+import { setTyping, setOnlineStatus, updateLastMessage, incrementUnread, fetchChats } from '../store/slices/chatSlice';
 import { setIncomingCall } from '../store/slices/uiSlice';
 
 export const useSocket = () => {
@@ -30,6 +30,9 @@ export const useSocket = () => {
       dispatch(updateLastMessage({ chatId: message.chat, message }));
       if (activeChatRef.current?._id !== message.chat) {
         dispatch(incrementUnread({ chatId: message.chat }));
+      } else {
+        // Refresh messages in active chat so new messages appear instantly
+        dispatch(fetchMessages({ chatId: message.chat }));
       }
     });
 
@@ -53,8 +56,19 @@ export const useSocket = () => {
       dispatch(setIncomingCall(data));
     });
 
+    socket.on('call:ended', () => {
+      dispatch(fetchChats());
+    });
+
     socket.on('disconnect', () => {
       console.log('Socket disconnected');
+    });
+
+    socket.on('reconnect', () => {
+      dispatch(fetchChats());
+      if (activeChatRef.current?._id) {
+        dispatch(fetchMessages({ chatId: activeChatRef.current._id }));
+      }
     });
 
     return () => {

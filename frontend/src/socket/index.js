@@ -7,9 +7,9 @@ export const initSocket = (token) => {
 
   socket = io(process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000', {
     auth: { token },
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     reconnection: true,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: 10,
     reconnectionDelay: 1000,
   });
 

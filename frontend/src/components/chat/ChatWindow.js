@@ -54,11 +54,6 @@ const ChatWindow = ({ chat }) => {
 
   const startCall = (type) => {
     dispatch(setCallState({ type, chatId: chat._id, targetUser: chatUser, status: 'calling' }));
-    socket?.emit('call:invite', {
-      targetUserId: chatUser?._id,
-      chatId: chat._id,
-      callType: type,
-    });
   };
 
   const renderDateSeparator = (date, key) => (
