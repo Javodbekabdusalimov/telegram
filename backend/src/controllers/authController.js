@@ -23,7 +23,7 @@ exports.sendOTP = async (req, res) => {
     res.json({
       success: true,
       message: 'OTP sent successfully',
-      ...(process.env.NODE_ENV === 'development' && { otp }),
+      otp,
     });
   } catch (error) {
     console.error(error);
