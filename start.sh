@@ -1,26 +1,18 @@
 #!/bin/bash
-echo "🚀 KAYFQIL ishga tushmoqda..."
+echo "🚀 KAYFQIL Railway-da ishga tushmoqda..."
 
-# Backend
-echo "📡 Backend server ishga tushmoqda (port 5000)..."
-cd /Users/javodbek/Desktop/telegram/backend
+# 1. Backend papkasiga kirib dependencylarni o'rnatish
+echo "📡 Backend tayyorlanmoqda..."
+cd backend
 npm install --silent
-node server.js &
-BACKEND_PID=$!
-echo "Backend PID: $BACKEND_PID"
 
-# Frontend
-echo "🌐 Frontend ishga tushmoqda (port 3000)..."
-cd /Users/javodbek/Desktop/telegram/frontend
-npm start &
-FRONTEND_PID=$!
-echo "Frontend PID: $FRONTEND_PID"
+# 2. Frontend build qilish (Agar hali build bo'lmagan bo'lsa)
+echo "🌐 Frontend build qilinmoqda..."
+cd ../frontend
+npm install --silent
+npm run build # React/Vite loyihasini static fayllarga aylantiradi
 
-echo ""
-echo "✅ KAYFQIL ishga tushdi!"
-echo "🌐 Frontend: http://localhost:3000"
-echo "📡 Backend:  http://localhost:5000"
-echo ""
-echo "To'xtatish uchun: kill $BACKEND_PID $FRONTEND_PID"
-
-wait
+# 3. Backend-ni ishga tushirish (Frontend build-ni ham shu servis qiladi)
+echo "📡 Server ishga tushmoqda..."
+cd ../backend
+node server.js

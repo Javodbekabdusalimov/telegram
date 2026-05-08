@@ -19,9 +19,10 @@ const socketHandler = require('./src/socket');
 const app = express();
 const server = http.createServer(app);
 
+  
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: "*", // Railway-da bitta URL bo'lgani uchun * xavfsiz yoki o'sha URL-ni yozing
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -30,18 +31,29 @@ const io = new Server(server, {
 
 connectDB();
 
+// 2. Helmet sozlamalarini biroz yumshatish (Frontend static fayllari ishlashi uchun)
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false, // React/Vite build fayllari bloklanmasligi uchun
 }));
+
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: "*",
   credentials: true,
 }));
+
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// 3. Statik papkalar
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// --- FRONTEND INTEGRATSIYASI ---
+// Frontend build fayllarini serverga ulash
+// Agar frontend papkangiz 'frontend' bo'lsa va Vite represents 'dist' ishlatsangiz:
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+// -------------------------------
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -50,6 +62,7 @@ const globalLimiter = rateLimit({
 });
 app.use('/api', globalLimiter);
 
+// API yo'nalishlari
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chats', chatRoutes);
@@ -58,6 +71,12 @@ app.use('/api/stories', storyRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'KAYFQIL', version: '1.0.0' });
+});
+
+// 4. FRONTEND ROUTING (Muhim!)
+// API-dan boshqa barcha so'rovlarni Frontend'ga yo'naltirish
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
 });
 
 app.use((err, req, res, next) => {
@@ -70,9 +89,10 @@ app.use((err, req, res, next) => {
 
 socketHandler(io);
 
+// 5. Portni Railway uchun '0.0.0.0' IP bilan ochish
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`KAYFQIL server running on port ${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 KAYFQIL server running on port ${PORT}`);
 });
 
-module.exports = { app, server };
+  module.exports = { app, server };

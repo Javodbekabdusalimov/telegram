@@ -4,8 +4,10 @@
   "description": "KAYFQIL - Telegram-like messaging platform backend",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+  
+    "dev": "nodemon server.js",
+    "start": "bash start.sh"
+
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
